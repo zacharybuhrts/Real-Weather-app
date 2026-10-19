@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Daylight — Weather, at a glance</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      --page: #f4f6fa;
+      --surface: #fff;
+      --surface-soft: #f6f8fb;
+      --ink: #172033;
+      --muted: #798397;
+      --line: #e9edf3;
+      --accent: #efab44;
+      --accent-deep: #bd7413;
+      --sky: #eef6ff;
+      --shadow: 0 20px 60px rgba(30, 48, 78, .09);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #101522;
+        --surface: #191f2e;
+        --surface-soft: #202738;
+        --ink: #edf1f8;
+        --muted: #a0aabd;
+        --line: #2a3344;
+        --accent: #ffc36c;
+        --accent-deep: #ffcf8a;
+        --sky: #212c3e;
+        --shadow: 0 20px 60px rgba(0, 0, 0, .24);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 48px 20px;
+      display: grid;
+      place-items: start center;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 50% -15%, rgba(255, 205, 125, .18), transparent 45%),
+        var(--page);
+      font-size: 15px;
+    }
+
+    .app { width: min(100%, 560px); }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 2px 24px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #ffd881, #f3a83f);
+      color: #57390e;
+      font-size: 20px;
+      box-shadow: 0 5px 14px rgba(226, 157, 54, .23);
+    }
+    .brand-name { font-size: 15px; font-weight: 750; letter-spacing: -.03em; }
+    .brand-note { margin-top: 1px; color: var(--muted); font-size: 12px; }
+    .live-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #57bf8a; box-shadow: 0 0 0 3px rgba(87, 191, 138, .13);
+    }
+
+    .panel {
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
+      border-radius: 26px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      position: relative;
+      min-height: 326px;
+      padding: 26px 30px 27px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 84% 28%, rgba(255,255,255,.6) 0 9%, transparent 9.3%),
+        linear-gradient(135deg, #fff5e3, #f9e8cc 58%, #f7dfbd);
+      color: #28344a;
+      transition: background .25s ease;
+    }
+    .hero[data-weather="cold"] { background: linear-gradient(135deg, #e9f4ff, #d7eaff 58%, #c9e0fa); }
+    .hero[data-weather="cloudy"] { background: linear-gradient(135deg, #eaf0f6, #dce5ee 58%, #d1dce7); }
+    .hero[data-weather="rain"] { background: linear-gradient(135deg, #e5eff9, #d3e2f1 58%, #c4d6e8); }
+    .hero[data-weather="night"] { background: linear-gradient(135deg, #dfe5fa, #d4ddf4 58%, #c6d2ec); }
+    @media (prefers-color-scheme: dark) {
+      .hero { background: linear-gradient(135deg, #453b31, #393529 58%, #343128); color: #fff4df; }
+      .hero[data-weather="cold"] { background: linear-gradient(135deg, #263a50, #26374b 58%, #29384a); color: #edf5ff; }
+      .hero[data-weather="cloudy"] { background: linear-gradient(135deg, #343d4b, #303846 58%, #2d3542); color: #f0f3f8; }
+      .hero[data-weather="rain"] { background: linear-gradient(135deg, #2b3c50, #29384a 58%, #293644); color: #edf5ff; }
+      .hero[data-weather="night"] { background: linear-gradient(135deg, #303954, #2c354d 58%, #293247); color: #eff1ff; }
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 240px; height: 240px;
+      top: -110px; right: -52px;
+      border: 1px solid rgba(255,255,255,.31);
+      border-radius: 50%;
+      box-shadow: 0 0 0 25px rgba(255,255,255,.12), 0 0 0 52px rgba(255,255,255,.08);
+      pointer-events: none;
+    }
+    .hero-top {
+      position: relative; z-index: 1;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    }
+    .eyebrow {
+      font-size: 11px; font-weight: 750; letter-spacing: .12em;
+      text-transform: uppercase; opacity: .67;
+    }
+    .place { margin-top: 7px; font-size: 21px; font-weight: 700; letter-spacing: -.035em; }
+    .date { margin-top: 4px; font-size: 13px; opacity: .72; }
+    .search {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; gap: 7px;
+      width: min(190px, 48%);
+      padding: 5px 6px 5px 12px;
+      border: 1px solid rgba(42, 55, 76, .12);
+      border-radius: 12px;
+      background: rgba(255,255,255,.48);
+      backdrop-filter: blur(8px);
+    }
+    .search:focus-within { outline: 2px solid rgba(189, 116, 19, .35); }
+    .search input {
+      min-width: 0; width: 100%; border: 0; outline: 0;
+      background: transparent; color: inherit; font: inherit; font-size: 12px;
+    }
+    .search input::placeholder { color: currentColor; opacity: .62; }
+    .search button {
+      display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center;
+      border: 0; border-radius: 9px; color: inherit; background: rgba(255,255,255,.62);
+      cursor: pointer; font-size: 15px;
+    }
+    .search button:hover { background: rgba(255,255,255,.88); }
+
+    .weather-main {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 38px;
+    }
+    .temperature {
+      display: flex; align-items: flex-start;
+      font-size: clamp(72px, 17vw, 100px);
+      font-weight: 300; letter-spacing: -.085em; line-height: .93;
+    }
+    .degree { margin: 9px 0 0 5px; font-size: 35px; font-weight: 400; letter-spacing: -.05em; }
+    .weather-icon {
+      display: grid; width: 112px; height: 112px; place-items: center;
+      margin: -5px 14px 0 0;
+      border-radius: 50%;
+      background: rgba(255,255,255,.37);
+      font-size: 63px;
+      filter: drop-shadow(0 10px 12px rgba(84, 75, 60, .11));
+    }
+    .conditions { position: relative; z-index: 1; margin-top: 15px; }
+    .condition-name { font-size: 19px; font-weight: 680; letter-spacing: -.025em; }
+    .feels { margin-top: 5px; font-size: 13px; opacity: .71; }
+
+    .details {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      padding: 17px 30px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .detail { display: flex; align-items: center; gap: 10px; }
+    .detail + .detail { padding-left: 20px; border-left: 1px solid var(--line); }
+    .detail-icon { font-size: 18px; opacity: .82; }
+    .detail-value { font-size: 14px; font-weight: 700; }
+    .detail-label { margin-top: 2px; color: var(--muted); font-size: 11px; }
+
+    .forecast { padding: 22px 26px 26px; }
+    .forecast-heading {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 0 3px 15px;
+    }
+    .forecast-title { font-size: 15px; font-weight: 730; letter-spacing: -.02em; }
+    .forecast-note { color: var(--muted); font-size: 11px; }
+    .days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+    .day {
+      min-width: 0; padding: 13px 5px 12px; text-align: center;
+      border: 1px solid var(--line); border-radius: 16px;
+      background: var(--surface-soft);
+      transition: transform .18s ease, border-color .18s ease;
+    }
+    .day:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+    .day-name { overflow: hidden; color: var(--muted); font-size: 11px; font-weight: 650; text-overflow: ellipsis; }
+    .day-icon { margin: 12px 0 11px; font-size: 25px; line-height: 1; }
+    .day-temps { display: flex; justify-content: center; gap: 7px; font-size: 12px; font-weight: 700; }
+    .day-low { color: var(--muted); font-weight: 500; }
+
+    .message {
+      min-height: 18px; margin: 13px 4px 0;
+      color: var(--muted); font-size: 11px; text-align: center;
+    }
+    .message.error { color: #b45c3d; }
+    .footer {
+      display: flex; justify-content: center; gap: 5px;
+      margin-top: 17px; color: var(--muted); font-size: 11px;
+    }
+    .footer strong { color: var(--ink); font-weight: 650; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 27px 13px; }
+      .topbar { margin-bottom: 17px; }
+      .hero { min-height: 305px; padding: 22px 20px 23px; }
+      .place { font-size: 18px; }
+      .search { width: min(150px, 48%); }
+      .weather-main { margin-top: 42px; }
+      .weather-icon { width: 88px; height: 88px; margin-right: 3px; font-size: 49px; }
+      .details { padding: 15px 17px; }
+      .detail { gap: 7px; }
+      .detail + .detail { padding-left: 10px; }
+      .detail-icon { font-size: 16px; }
+      .detail-value { font-size: 12px; }
+      .detail-label { font-size: 10px; }
+      .forecast { padding: 19px 13px 20px; }
+      .days { gap: 6px; }
+      .day { border-radius: 13px; padding: 12px 2px 10px; }
+      .day-name { font-size: 10px; }
+      .day-icon { font-size: 22px; }
+      .day-temps { gap: 4px; font-size: 11px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">☼</div>
+        <div>
+          <div class="brand-name">daylight</div>
+          <div class="brand-note">weather, at a glance</div>
+        </div>
+      </div>
+      <div class="live-label"><span class="live-dot" aria-hidden="true"></span><span id="update-label">Live weather</span></div>
+    </header>
+
+    <section class="panel" aria-label="Weather forecast">
+      <div class="hero" id="hero" data-weather="sunny">
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">Your local forecast</div>
+            <div class="place" id="place">Marysville, Ohio</div>
+            <div class="date" id="today"></div>
+          </div>
+          <form class="search" id="search-form" role="search">
+            <label class="sr-only" for="city-search">Search for a city or ZIP code</label>
+            <input id="city-search" type="search" placeholder="City or ZIP" autocomplete="off">
+            <button type="submit" aria-label="Search city">⌕</button>
+          </form>
+        </div>
+        <div class="weather-main">
+          <div class="temperature" aria-label="Current temperature"><span id="temperature">72</span><span class="degree">°</span></div>
+          <div class="weather-icon" id="weather-icon" aria-hidden="true">☀️</div>
+        </div>
+        <div class="conditions">
+          <div class="condition-name" id="condition">Mostly sunny</div>
+          <div class="feels" id="feels">Feels like 74°</div>
+        </div>
+      </div>
+
+      <div class="details" aria-label="Current weather details">
+        <div class="detail">
+          <span class="detail-icon" aria-hidden="true">💧</span>
+          <div><div class="detail-value" id="humidity">48%</div><div class="detail-label">Humidity</div></div>
+        </div>
+        <div class="detail">
+          <span class="detail-icon" aria-hidden="true">↗</span>
+          <div><div class="detail-value" id="wind">7 mph</div><div class="detail-label">Wind</div></div>
+        </div>
+        <div class="detail">
+          <span class="detail-icon" aria-hidden="true">☂</span>
+          <div><div class="detail-value" id="rain">10%</div><div class="detail-label">Rain chance</div></div>
+        </div>
+      </div>
+
+      <div class="forecast">
+        <div class="forecast-heading">
+          <div class="forecast-title">5-day forecast</div>
+          <div class="forecast-note">Daily outlook</div>
+        </div>
+        <div class="days" id="days" aria-live="polite"></div>
+        <div class="message" id="message" role="status"></div>
+      </div>
+    </section>
+    <footer class="footer"><span>Weather data by</span> <strong>Open-Meteo</strong></footer>
+  </main>
+
+  <script>
+    const fallback = {
+      current: { temperature_2m: 22, apparent_temperature: 23, relative_humidity_2m: 48, wind_speed_10m: 11, weather_code: 2 },
+      daily: {
+        time: [], weather_code: [2, 1, 3, 61, 2],
+        temperature_2m_max: [24, 26, 22, 19, 23],
+        temperature_2m_min: [13, 15, 12, 11, 14],
+        precipitation_probability_max: [10, 5, 15, 65, 10]
+      }
+    };
+    const weather = {
+      0: ["Clear sky", "☀️", "sunny"], 1: ["Mostly clear", "🌤️", "sunny"], 2: ["Partly cloudy", "⛅", "cloudy"],
+      3: ["Overcast", "☁️", "cloudy"], 45: ["Foggy", "🌫️", "cloudy"], 48: ["Foggy", "🌫️", "cloudy"],
+      51: ["Light drizzle", "🌦️", "rain"], 53: ["Drizzle", "🌦️", "rain"], 55: ["Heavy drizzle", "🌧️", "rain"],
+      56: ["Freezing drizzle", "🌧️", "cold"], 57: ["Freezing drizzle", "🌧️", "cold"],
+      61: ["Light rain", "🌦️", "rain"], 63: ["Rain", "🌧️", "rain"], 65: ["Heavy rain", "🌧️", "rain"],
+      66: ["Freezing rain", "🌧️", "cold"], 67: ["Freezing rain", "🌧️", "cold"],
+      71: ["Light snow", "🌨️", "cold"], 73: ["Snow", "🌨️", "cold"], 75: ["Heavy snow", "❄️", "cold"], 77: ["Snow grains", "❄️", "cold"],
+      80: ["Rain showers", "🌦️", "rain"], 81: ["Rain showers", "🌧️", "rain"], 82: ["Heavy showers", "⛈️", "rain"],
+      85: ["Snow showers", "🌨️", "cold"], 86: ["Heavy snow showers", "❄️", "cold"],
+      95: ["Thunderstorm", "⛈️", "rain"], 96: ["Thunderstorm", "⛈️", "rain"], 99: ["Thunderstorm", "⛈️", "rain"]
+    };
+    const $ = (id) => document.getElementById(id);
+    const fahrenheit = (celsius) => Math.round(celsius * 9 / 5 + 32);
+    const label = (code) => weather[code] || ["Variable conditions", "🌤️", "cloudy"];
+
+    function render(data, place, timezone) {
+      const current = data.current;
+      const daily = data.daily;
+      const [description, icon, mood] = label(current.weather_code);
+      $("place").textContent = place;
+      $("temperature").textContent = fahrenheit(current.temperature_2m);
+      $("weather-icon").textContent = icon;
+      $("condition").textContent = description;
+      $("feels").textContent = `Feels like ${fahrenheit(current.apparent_temperature)}°`;
+      $("humidity").textContent = `${current.relative_humidity_2m}%`;
+      $("wind").textContent = `${Math.round(current.wind_speed_10m * 0.621371)} mph`;
+      $("rain").textContent = `${daily.precipitation_probability_max?.[0] ?? 0}%`;
+      $("hero").dataset.weather = current.temperature_2m <= 5 ? "cold" : mood;
+      $("today").textContent = new Intl.DateTimeFormat("en-US", {
+        weekday: "long", month: "long", day: "numeric", timeZone: timezone || "America/New_York"
+      }).format(new Date());
+      const days = daily.time.slice(0, 5).map((date, i) => {
+        const day = i === 0 ? "Today" : new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" })
+          .format(new Date(`${date}T12:00:00Z`));
+        const [, dayIcon] = label(daily.weather_code[i]);
+        return `<article class="day" aria-label="${day}: ${label(daily.weather_code[i])[0]}, high ${fahrenheit(daily.temperature_2m_max[i])} degrees, low ${fahrenheit(daily.temperature_2m_min[i])} degrees">
+          <div class="day-name">${day}</div><div class="day-icon" aria-hidden="true">${dayIcon}</div>
+          <div class="day-temps"><span>${fahrenheit(daily.temperature_2m_max[i])}°</span><span class="day-low">${fahrenheit(daily.temperature_2m_min[i])}°</span></div>
+        </article>`;
+      }).join("");
+      $("days").innerHTML = days;
+    }
+
+    function fallbackData() {
+      const date = new Date();
+      const dates = Array.from({ length: 5 }, (_, i) => {
+        const day = new Date(date);
+        day.setDate(date.getDate() + i);
+        return day.toISOString().slice(0, 10);
+      });
+      return { current: fallback.current, daily: { ...fallback.daily, time: dates } };
+    }
+
+    async function loadWeather(query = "Marysville, Ohio", coords = null) {
+      $("message").className = "message";
+      $("message").textContent = "Updating forecast…";
+      $("update-label").textContent = "Updating";
+      try {
+        if (!coords) {
+          const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+          const geoResponse = await fetch(geoUrl);
+          if (!geoResponse.ok) throw new Error("City lookup failed.");
+          const result = (await geoResponse.json()).results?.[0];
+          if (!result) throw new Error("No matching city found. Try another name or ZIP code.");
+          coords = { latitude: result.latitude, longitude: result.longitude };
+          const region = result.admin1 ? `, ${result.admin1}` : "";
+          query = `${result.name}${region}`;
+        }
+        const params = new URLSearchParams({
+          ...coords,
+          current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+          daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+          temperature_unit: "celsius", wind_speed_unit: "kmh", forecast_days: "5", timezone: "auto"
+        });
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+        if (!response.ok) throw new Error("Weather data is unavailable.");
+        const data = await response.json();
+        render(data, query, data.timezone);
+        $("message").textContent = "";
+        $("update-label").textContent = "Live weather";
+      } catch (error) {
+        if (query === "Marysville, Ohio") {
+          render(fallbackData(), "Marysville, Ohio", "America/New_York");
+          $("message").textContent = "Showing a typical local forecast — live data couldn’t be reached.";
+        } else {
+          $("message").textContent = error.message === "Failed to fetch"
+            ? "Can’t reach the weather service. Please check your connection and try again."
+            : error.message;
+          $("message").className = "message error";
+        }
+        $("update-label").textContent = "Offline";
+      }
+    }
+
+    $("search-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const query = $("city-search").value.trim();
+      if (query) loadWeather(query);
+    });
+
+    render(fallbackData(), "Marysville, Ohio", "America/New_York");
+    loadWeather("Marysville, Ohio", { latitude: 40.2364, longitude: -83.3671 });
+  </script>
+</body>
+</html>

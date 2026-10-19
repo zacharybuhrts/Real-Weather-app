@@ -1,0 +1,15 @@
+{
+  "name": "real-weather",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Real Weather desktop app. A native window around the Daylight weather page.",
+  "scripts": {
+    "tauri": "tauri",
+    "desktop": "tauri dev",
+    "build": "tauri build",
+    "build:mac": "tauri build --target aarch64-apple-darwin --bundles dmg"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3"
+  }
+}
