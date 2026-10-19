@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Real Weather",
+  "version": "../package.json",
+  "identifier": "com.zacharybuhrts.realweather",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Real Weather",
+        "width": 720,
+        "height": 940,
+        "minWidth": 380,
+        "minHeight": 680,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "script-src": "'self' 'unsafe-inline'",
+        "style-src": "'self' 'unsafe-inline'",
+        "connect-src": "ipc: http://ipc.localhost https://api.open-meteo.com https://geocoding-api.open-meteo.com",
+        "img-src": "'self' asset: http://asset.localhost blob: data:"
+      },
+      "dangerousDisableAssetCspModification": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Weather",
+    "shortDescription": "Weather, at a glance",
+    "longDescription": "Real Weather is a desktop window around the Daylight weather page. Live forecasts come from Open-Meteo and do not need an API key.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": "-"
+    }
+  }
+}
